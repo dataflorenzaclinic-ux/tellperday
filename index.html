@@ -197,7 +197,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs, where, runTransaction } 
+  from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDVqmZL00O9rbuYu6Ijxv-ajWQkIj2LEQo",
@@ -228,7 +229,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   let dashEndDate = '';
   let dashAggregatedData = [];
   let isBossAuthenticated = false;
-  let saveTimeout = null;
+  let unsubscribe = null;
 
   const getTodayStr = () => {
     const d = new Date();
@@ -254,74 +255,93 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     setTimeout(() => t.classList.remove('show'), 1800);
   }
 
-  // --- ระบบบันทึกข้อมูลลง Firebase ---
-  function persist() {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(async () => {
-      try {
-        const payload = { ...data, date: currentDate };
-        await setDoc(doc(db, "daily_calls", currentDate), payload);
-      } catch (error) {
-        console.error("Firebase Error:", error);
-        toastMsg("ไม่สามารถบันทึกออนไลน์ได้");
-      }
-    }, 500);
+  // --- ระบบบันทึกข้อมูลแบบ Transaction เพื่อป้องกันข้อมูลทับกัน ---
+  async function persistTransaction(updaterFn) {
+    const docRef = doc(db, "daily_calls", currentDate);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const sfDoc = await transaction.get(docRef);
+        let currentData;
+        if (!sfDoc.exists()) {
+          currentData = { FRC:[], FRB:[], FRS:[], BSK:[], date: currentDate };
+        } else {
+          currentData = sfDoc.data();
+        }
+        const newData = updaterFn(currentData);
+        transaction.set(docRef, { ...newData, date: currentDate });
+      });
+    } catch (e) {
+      console.error("Transaction failed: ", e);
+      toastMsg("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+    }
   }
 
-  // --- ระบบโหลดข้อมูลจาก Firebase ---
-  async function loadData() {
-    document.getElementById('emp-list').innerHTML = `<div class="loading">กำลังโหลดข้อมูล...</div>`;
+  // --- ระบบโหลดข้อมูล Real-time ---
+  function loadData() {
+    if (unsubscribe) unsubscribe();
+    
+    document.getElementById('emp-list').innerHTML = `<div class="loading">กำลังเชื่อมต่อข้อมูล...</div>`;
     document.getElementById('add-btn').style.display = 'none';
 
-    try {
-      const docRef = doc(db, "daily_calls", currentDate);
-      const docSnap = await getDoc(docRef);
-
+    const docRef = doc(db, "daily_calls", currentDate);
+    
+    unsubscribe = onSnapshot(docRef, async (docSnap) => {
       if (docSnap.exists()) {
         const dbData = docSnap.data();
-        data = { FRC: dbData.FRC||[], FRB: dbData.FRB||[], FRS: dbData.FRS||[], BSK: dbData.BSK||[] };
+        data = { 
+          FRC: dbData.FRC||[], 
+          FRB: dbData.FRB||[], 
+          FRS: dbData.FRS||[], 
+          BSK: dbData.BSK||[] 
+        };
         updateSeq();
+        renderBar();
+        renderEmps();
+        document.getElementById('add-btn').style.display = 'block';
       } else {
+        // ถ้าเป็นวันนี้และไม่มีข้อมูล ให้ดึงจากวันล่าสุดมาเป็นต้นแบบ
         if (currentDate === getTodayStr()) {
           const q = query(collection(db, "daily_calls"), orderBy("date", "desc"), limit(1));
           const querySnapshot = await getDocs(q);
           
-          if (!querySnapshot.empty) {
+          if (!querySnapshot.empty && querySnapshot.docs[0].id !== currentDate) {
             const lastData = querySnapshot.docs[0].data();
-            data = {FRC:[], FRB:[], FRS:[], BSK:[]};
+            const newData = {FRC:[], FRB:[], FRS:[], BSK:[]};
             BR.forEach(b => {
               if (lastData[b.id]) {
                 lastData[b.id].forEach(e => {
-                  data[b.id].push({ id: e.id, name: e.name, calls: 0, apps: 0 });
+                  newData[b.id].push({ id: Date.now() + Math.random(), name: e.name, calls: 0, apps: 0 });
                 });
               }
             });
-            updateSeq();
-            persist(); 
+            // บันทึกเฉพาะเมื่อยังไม่มีใครสร้างของวันนี้
+            await setDoc(docRef, { ...newData, date: currentDate }, { merge: true });
           } else {
             data = {FRC:[],FRB:[],FRS:[],BSK:[]};
+            updateSeq();
+            renderBar();
+            renderEmps();
+            document.getElementById('add-btn').style.display = 'block';
           }
         } else {
           data = {FRC:[],FRB:[],FRS:[],BSK:[]};
           updateSeq();
+          renderBar();
+          renderEmps();
+          document.getElementById('add-btn').style.display = 'block';
         }
       }
-      
-      document.getElementById('add-btn').style.display = 'block';
-      renderBar();
-      renderEmps();
-    } catch (e) {
-      console.error("Load Data Error:", e);
-      document.getElementById('emp-list').innerHTML = `<div class="loading" style="color:red;">โหลดข้อมูลล้มเหลว (ตรวจสอบ Firebase Rules)</div>`;
-    }
+    }, (error) => {
+      console.error("Listen error:", error);
+      document.getElementById('emp-list').innerHTML = `<div class="loading" style="color:red;">การเชื่อมต่อขัดข้อง</div>`;
+    });
   }
 
   function updateSeq() {
     let maxId = 0;
     Object.values(data).forEach(branchEmps => {
       branchEmps.forEach(e => { 
-        if(e.id > maxId) maxId = e.id; 
-        if(typeof e.apps === 'undefined') e.apps = 0;
+        if(typeof e.id === 'number' && e.id > maxId && e.id < 1000000000) maxId = e.id; 
       });
     });
     seq = maxId;
@@ -347,16 +367,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           <div class="emp-name-wrap">
             <input class="emp-name" placeholder="ชื่อพนักงาน..." value="${escapeHTML(e.name)}" 
               autocomplete="off" onfocus="this.select()"
-              oninput="updateEmpName(${e.id}, this.value)">
+              onchange="updateEmpName('${e.id}', this.value)">
           </div>
-          <button class="emp-del" onclick="delEmp(${e.id})">×</button>
+          <button class="emp-del" onclick="delEmp('${e.id}')">×</button>
         </div>
         <div class="metrics-wrap">
           <div class="metric-col">
             <div class="metric-hdr">สายที่โทร</div>
             <div class="tap-row">
-              <div class="tap-minus" onclick="bump(${e.id},'calls',-1)">−</div>
-              <div class="tap-main" onclick="bump(${e.id},'calls',1)">
+              <div class="tap-minus" onclick="bump('${e.id}','calls',-1)">−</div>
+              <div class="tap-main" onclick="bump('${e.id}','calls',1)">
                 <div class="tap-num" id="calls_${e.id}" style="color:${b.dark}">${e.calls}</div>
                 <div class="tap-label" style="color:${b.color}">+ แตะเพิ่ม</div>
               </div>
@@ -365,8 +385,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           <div class="metric-col">
             <div class="metric-hdr">จำนวนนัด</div>
             <div class="tap-row">
-              <div class="tap-minus" onclick="bump(${e.id},'apps',-1)">−</div>
-              <div class="tap-main" onclick="bump(${e.id},'apps',1)">
+              <div class="tap-minus" onclick="bump('${e.id}','apps',-1)">−</div>
+              <div class="tap-main" onclick="bump('${e.id}','apps',1)">
                 <div class="tap-num" id="apps_${e.id}" style="color:${b.dark}">${e.apps||0}</div>
                 <div class="tap-label" style="color:${b.color}">+ แตะเพิ่ม</div>
               </div>
@@ -383,33 +403,52 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   }
   
   window.pickBranch = function(id) { sel = id; renderBar(); renderEmps(); }
-  window.addEmp = function(name='', calls=0, apps=0) {
-    if(!data[sel]) data[sel]=[];
-    data[sel].push({id: ++seq, name, calls, apps});
-    persist(); renderEmps(); renderBar();
+  
+  window.addEmp = async function(name='', calls=0, apps=0) {
+    const newId = Date.now() + Math.round(Math.random() * 1000);
+    await persistTransaction(prev => {
+      if(!prev[sel]) prev[sel] = [];
+      prev[sel].push({id: newId, name, calls, apps});
+      return prev;
+    });
   }
-  window.delEmp = function(id) {
-    data[sel] = data[sel].filter(e=>e.id!==id);
-    persist(); renderEmps(); renderBar();
+
+  window.delEmp = async function(id) {
+    if(!confirm("ยืนยันการลบพนักงาน?")) return;
+    await persistTransaction(prev => {
+      if(prev[sel]) prev[sel] = prev[sel].filter(e => String(e.id) !== String(id));
+      return prev;
+    });
   }
-  window.bump = function(id, type, delta) {
-    const b = BR.find(x=>x.id===sel);
-    const emp = data[sel].find(e=>e.id===id);
-    if(!emp) return;
-    emp[type] = Math.max(0, (emp[type]||0) + delta);
-    persist();
+
+  window.bump = async function(id, type, delta) {
+    // อัปเดต UI ทันทีเพื่อความลื่นไหล (Optimistic Update)
     const el = document.getElementById(`${type}_${id}`);
-    if(el){
-      el.textContent = emp[type];
-      el.style.color = b.dark;
+    if(el) {
+      const currentVal = parseInt(el.textContent);
+      const newVal = Math.max(0, currentVal + delta);
+      el.textContent = newVal;
       el.style.transform = 'scale(1.15)';
       setTimeout(() => el.style.transform = 'scale(1)', 120);
     }
-    renderBar();
+
+    await persistTransaction(prev => {
+      const emp = (prev[sel]||[]).find(e => String(e.id) === String(id));
+      if(emp) {
+        emp[type] = Math.max(0, (emp[type]||0) + delta);
+      }
+      return prev;
+    });
   }
-  window.updateEmpName = function(id, value) {
-    const emp = data[sel].find(x => x.id === id);
-    if(emp) { emp.name = value; persist(); }
+
+  window.updateEmpName = async function(id, value) {
+    await persistTransaction(prev => {
+      const emp = (prev[sel]||[]).find(e => String(e.id) === String(id));
+      if(emp) {
+        emp.name = value;
+      }
+      return prev;
+    });
   }
 
   // --- Dashboard ---
@@ -515,7 +554,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     
     emps.sort((a,b) => b.calls - a.calls);
 
-    const tc = emps.reduce((s, e) => s + e.calls, 0);
+    const tc = emps.reduce((s, e) => s + (e.calls || 0), 0);
     const ta = emps.reduce((s, e) => s + (e.apps||0), 0);
     
     document.getElementById('dash-stats').innerHTML = `
@@ -562,7 +601,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     let emps = dashSel === 'ALL' ? [...dashAggregatedData] : dashAggregatedData.filter(e => e.branch.id === dashSel);
     emps.sort((a,b) => b.calls - a.calls);
 
-    const tc = emps.reduce((s, e) => s + e.calls, 0);
+    const tc = emps.reduce((s, e) => s + (e.calls || 0), 0);
     const ta = emps.reduce((s, e) => s + (e.apps||0), 0);
     
     let branchName = dashSel === 'ALL' ? 'ทุกสาขารวมกัน' : BR.find(x => x.id === dashSel).label;
