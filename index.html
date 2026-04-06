@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>บันทึกการโทร</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --frc:#1D9E75;--frc-l:#E1F5EE;--frc-d:#085041;
+  --frb:#378ADD;--frb-l:#E6F1FB;--frb-d:#0C447C;
+  --frs:#D85A30;--frs-l:#FAECE7;--frs-d:#712B13;
+  --bsk:#BA7517;--bsk-l:#FAEEDA;--bsk-d:#633806;
+  --bg:#f5f4f0;--sur:#fff;--bd:rgba(0,0,0,0.1);
+  --tx:#1a1a18;--tx2:#5f5e5a;--tx3:#aaa;
+  --accent:var(--frc);--accent-d:var(--frc-d);--accent-l:var(--frc-l);
+  --font:'IBM Plex Sans Thai',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--tx);font-size:16px;}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;background:var(--sur);position:relative;}
+
+/* Views */
+.view{display:flex;flex-direction:column;height:100%;width:100%;background:var(--sur);}
+#dashboard-view{display:none;background:var(--bg);}
+
+/* Header & Date Picker */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sur);}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.btn-icon{background:none;border:none;font-size:24px;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.btn-icon:active{opacity:0.6;}
+.hdr-title{font-size:15px;font-weight:600;}
+.date-picker{font-family:var(--font);font-size:13px;color:var(--tx2);border:1px solid var(--bd);border-radius:6px;padding:4px 6px;background:var(--bg);outline:none;cursor:pointer;margin-top:2px;}
+.sum-btn{font-family:var(--font);font-size:12px;font-weight:500;padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--bg);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.sum-btn:active{background:var(--bd);}
+
+/* Branch tabs */
+.branch-bar{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sur);}
+.b-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;gap:3px;}
+.b-tab-id{font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.b-tab-count{font-size:11px;font-weight:600;padding:1px 6px;border-radius:10px;}
+.b-tab.frc .b-tab-id, .b-tab.frb .b-tab-id, .b-tab.frs .b-tab-id, .b-tab.bsk .b-tab-id{color:var(--tx2);}
+.b-tab.frc .b-tab-count{background:var(--frc-l);color:var(--frc-d);}
+.b-tab.frb .b-tab-count{background:var(--frb-l);color:var(--frb-d);}
+.b-tab.frs .b-tab-count{background:var(--frs-l);color:var(--frs-d);}
+.b-tab.bsk .b-tab-count{background:var(--bsk-l);color:var(--bsk-d);}
+.b-tab.frc.active{border-bottom-color:var(--frc);}
+.b-tab.frb.active{border-bottom-color:var(--frb);}
+.b-tab.frs.active{border-bottom-color:var(--frs);}
+.b-tab.bsk.active{border-bottom-color:var(--bsk);}
+.b-tab.frc.active .b-tab-id{color:var(--frc-d);}
+.b-tab.frb.active .b-tab-id{color:var(--frb-d);}
+.b-tab.frs.active .b-tab-id{color:var(--frs-d);}
+.b-tab.bsk.active .b-tab-id{color:var(--bsk-d);}
+
+/* Main scroll */
+.scroll{flex:1;overflow-y:auto;padding:16px;}
+
+/* Employee cards */
+.emp-card{background:var(--bg);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+.emp-top{display:flex;align-items:center;padding:12px 14px;gap:10px;}
+.emp-name-wrap{flex:1;}
+.emp-name{font-size:15px;font-weight:500;width:100%;border:none;background:transparent;font-family:var(--font);color:var(--tx);outline:none;padding:0;}
+.emp-name::placeholder{color:var(--tx3);}
+.emp-del{background:none;border:none;color:var(--tx3);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;line-height:1;}
+.emp-del:active{background:rgba(0,0,0,0.07);}
+
+/* Metrics split area */
+.metrics-wrap{display:flex;border-top:1px solid rgba(0,0,0,0.06);}
+.metric-col{flex:1;display:flex;flex-direction:column;}
+.metric-col:first-child{border-right:1px solid rgba(0,0,0,0.06);}
+.metric-hdr{font-size:12px;text-align:center;padding:6px 0;background:rgba(0,0,0,0.02);color:var(--tx2);font-weight:500;border-bottom:1px solid rgba(0,0,0,0.06);}
+.tap-row{display:flex;flex:1;align-items:stretch;}
+.tap-minus{flex:0 0 44px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;cursor:pointer;color:var(--tx3);border-right:1px solid rgba(0,0,0,0.06);user-select:none;}
+.tap-minus:active{background:rgba(0,0,0,0.05);}
+.tap-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;cursor:pointer;user-select:none;transition:background .1s;}
+.tap-main:active{background:rgba(0,0,0,0.04);}
+.tap-num{font-size:32px;font-weight:600;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.tap-label{font-size:11px;font-weight:500;margin-top:2px;}
+
+/* Add employee button */
+.add-emp{width:100%;padding:14px;border:2px dashed var(--bd);border-radius:14px;background:transparent;font-family:var(--font);font-size:15px;color:var(--tx2);cursor:pointer;margin-bottom:12px;transition:all .15s;}
+.add-emp:active{background:rgba(0,0,0,0.04);}
+
+/* Dashboard Specific Styles */
+.dash-date-row{display:flex;align-items:center;gap:8px;padding:0 16px 12px;background:var(--sur);border-bottom:1px solid var(--bd);}
+.dash-date-row span{font-size:13px;color:var(--tx2);}
+.dash-tabs{display:flex;gap:8px;padding:16px;overflow-x:auto;scrollbar-width:none;background:var(--sur);}
+.dash-tabs::-webkit-scrollbar{display:none;}
+.d-tab{padding:8px 16px;border-radius:20px;border:1px solid var(--bd);background:var(--sur);font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer;color:var(--tx2);transition:all .2s;}
+.d-tab.active{background:var(--tx);color:var(--sur);border-color:var(--tx);}
+.dash-stats{display:flex;gap:12px;margin-bottom:20px;}
+.stat-card{flex:1;background:var(--sur);border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.stat-val{font-size:22px;font-weight:600;font-family:'IBM Plex Mono',monospace;line-height:1.2;}
+.stat-lbl{font-size:11px;color:var(--tx2);margin-top:4px;}
+.d-list-hdr{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--tx2);display:flex;justify-content:space-between;align-items:center;}
+.d-emp-item{display:flex;justify-content:space-between;align-items:center;background:var(--sur);padding:14px 16px;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.02);}
+.d-emp-info{display:flex;align-items:center;gap:12px;}
+.d-emp-rank{font-size:12px;font-weight:600;color:var(--tx3);width:16px;text-align:center;}
+.d-emp-branch{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;}
+.d-emp-name{font-size:14px;font-weight:500;word-break:break-all;}
+.d-emp-calls{font-size:18px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.d-total-row{display:flex;justify-content:space-between;align-items:center;background:#1a1a18;color:#fff;padding:16px;border-radius:12px;margin-top:16px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.d-total-label{font-size:15px;font-weight:600;}
+.d-total-val{font-size:18px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.btn-export{display:block;width:100%;margin-top:24px;padding:14px;background:var(--sur);border:1px solid var(--bd);border-radius:14px;text-align:center;font-weight:500;cursor:pointer;color:var(--tx);font-family:var(--font);font-size:14px;transition:all .15s;}
+.btn-export:active{background:var(--bg);}
+.sum-empty{text-align:center;color:var(--tx3);font-size:14px;padding:40px 0;}
+
+/* Toast & Loading */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .2s;z-index:200;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.loading{display:flex;justify-content:center;padding:40px 0;color:var(--tx3);font-size:14px;}
+</style>
+</head>
+<body>
+<div class="app">
+  
+  <div id="tracker-view" class="view">
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">บันทึกการโทร (Online)</div>
+        <input type="date" id="date-picker" class="date-picker" onchange="changeDate(this.value)">
+      </div>
+      <button class="sum-btn" onclick="openDashboard()">เข้าโหมดผู้บริหาร</button>
+    </div>
+    <div class="branch-bar" id="bbar"></div>
+    <div class="scroll">
+      <div id="emp-list"><div class="loading">กำลังเชื่อมต่อข้อมูล...</div></div>
+      <button class="add-emp" id="add-btn" style="display:none;" onclick="addEmp()">+ เพิ่มพนักงาน</button>
+    </div>
+  </div>
+
+  <div id="dashboard-view" class="view">
+    <div class="hdr" style="border-bottom:none; padding-bottom:8px;">
+      <div class="hdr-left">
+        <button class="btn-icon" onclick="closeDashboard()">←</button>
+        <div>
+          <div class="hdr-title">แดชบอร์ดผู้บริหาร</div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-date-row">
+      <input type="date" id="dash-start" class="date-picker" onchange="changeDashDate()">
+      <span>ถึง</span>
+      <input type="date" id="dash-end" class="date-picker" onchange="changeDashDate()">
+    </div>
+    <div class="dash-tabs" id="dash-tabs"></div>
+    <div class="scroll">
+      <div class="dash-stats" id="dash-stats"></div>
+      <div class="d-list-hdr">
+        <span>อันดับพนักงาน</span>
+        <span style="font-size:12px;font-weight:400;">สายที่โทร / นัด</span>
+      </div>
+      <div id="dash-list"></div>
+      <button class="btn-export" onclick="exportCSV()">ดาวน์โหลดไฟล์ CSV</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs, where } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVqmZL00O9rbuYu6Ijxv-ajWQkIj2LEQo",
+    authDomain: "tellperday-9bb36.firebaseapp.com",
+    projectId: "tellperday-9bb36",
+    storageBucket: "tellperday-9bb36.firebasestorage.app",
+    messagingSenderId: "127098393925",
+    appId: "1:127098393925:web:d217f8992eca508cfc1a2c",
+    measurementId: "G-CQQMND204F"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // เปลี่ยนชื่อฝ่ายตามรีเควสต์
+  const BR = [
+    {id:'FRC',label:'FRC',cls:'frc',color:'#1D9E75',dark:'#085041',light:'#E1F5EE'},
+    {id:'FRB',label:'FRB',cls:'frb',color:'#378ADD',dark:'#0C447C',light:'#E6F1FB'},
+    {id:'FRS',label:'FRS',cls:'frs',color:'#D85A30',dark:'#712B13',light:'#FAECE7'},
+    {id:'BSK',label:'BSK',cls:'bsk',color:'#BA7517',dark:'#633806',light:'#FAEEDA'},
+  ];
+  
+  let data = {FRC:[],FRB:[],FRS:[],BSK:[]};
+  let sel = 'FRC', seq = 0;
+  
+  // Dashboard State
+  let dashSel = 'ALL';
+  let dashStartDate = '';
+  let dashEndDate = '';
+  let dashAggregatedData = []; // เก็บข้อมูลที่รวมยอดแล้ว
+  let isBossAuthenticated = false; // ตัวแปรเช็คการล็อกอิน
+  let saveTimeout = null;
+
+  const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  let currentDate = getTodayStr();
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.toString().replace(/[&<>'"]/g, 
+      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
+    );
+  }
+
+  function toastMsg(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  // --- ระบบบันทึกข้อมูลลง Firebase ---
+  function persist() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try {
+        const payload = { ...data, date: currentDate };
+        await setDoc(doc(db, "daily_calls", currentDate), payload);
+      } catch (error) {
+        console.error("Firebase Error:", error);
+        toastMsg("ไม่สามารถบันทึกออนไลน์ได้");
+      }
+    }, 500);
+  }
+
+  // --- ระบบโหลดข้อมูลจาก Firebase ---
+  async function loadData() {
+    document.getElementById('emp-list').innerHTML = `<div class="loading">กำลังโหลดข้อมูล...</div>`;
+    document.getElementById('add-btn').style.display = 'none';
+
+    try {
+      const docRef = doc(db, "daily_calls", currentDate);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const dbData = docSnap.data();
+        data = { FRC: dbData.FRC||[], FRB: dbData.FRB||[], FRS: dbData.FRS||[], BSK: dbData.BSK||[] };
+        updateSeq();
+      } else {
+        if (currentDate === getTodayStr()) {
+          const q = query(collection(db, "daily_calls"), orderBy("date", "desc"), limit(1));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const lastData = querySnapshot.docs[0].data();
+            data = {FRC:[], FRB:[], FRS:[], BSK:[]};
+            BR.forEach(b => {
+              if (lastData[b.id]) {
+                lastData[b.id].forEach(e => {
+                  data[b.id].push({ id: e.id, name: e.name, calls: 0, apps: 0 });
+                });
+              }
+            });
+            updateSeq();
+            persist(); 
+          } else {
+            data = {FRC:[],FRB:[],FRS:[],BSK:[]};
+          }
+        } else {
+          data = {FRC:[],FRB:[],FRS:[],BSK:[]};
+          updateSeq();
+        }
+      }
+      
+      document.getElementById('add-btn').style.display = 'block';
+      renderBar();
+      renderEmps();
+    } catch (e) {
+      console.error("Load Data Error:", e);
+      document.getElementById('emp-list').innerHTML = `<div class="loading" style="color:red;">โหลดข้อมูลล้มเหลว (ตรวจสอบ Firebase Rules)</div>`;
+    }
+  }
+
+  function updateSeq() {
+    let maxId = 0;
+    Object.values(data).forEach(branchEmps => {
+      branchEmps.forEach(e => { 
+        if(e.id > maxId) maxId = e.id; 
+        if(typeof e.apps === 'undefined') e.apps = 0;
+      });
+    });
+    seq = maxId;
+  }
+
+  function totalCalls(bid){ return(data[bid]||[]).reduce((s,e)=>s+e.calls,0); }
+  function totalApps(bid){ return(data[bid]||[]).reduce((s,e)=>s+(e.apps||0),0); }
+
+  function renderBar() {
+    document.getElementById('bbar').innerHTML = BR.map(b=>`
+      <div class="b-tab ${b.cls} ${sel===b.id?'active':''}" onclick="pickBranch('${b.id}')">
+        <span class="b-tab-id">${b.id}</span>
+        <span class="b-tab-count">${totalCalls(b.id)} / ${totalApps(b.id)}</span>
+      </div>`).join('');
+  }
+
+  function renderEmps() {
+    const b = BR.find(x=>x.id===sel);
+    const emps = data[sel]||[];
+    document.getElementById('emp-list').innerHTML = emps.map(e=>`
+      <div class="emp-card">
+        <div class="emp-top">
+          <div class="emp-name-wrap">
+            <input class="emp-name" placeholder="ชื่อพนักงาน..." value="${escapeHTML(e.name)}" 
+              autocomplete="off" onfocus="this.select()"
+              oninput="updateEmpName(${e.id}, this.value)">
+          </div>
+          <button class="emp-del" onclick="delEmp(${e.id})">×</button>
+        </div>
+        <div class="metrics-wrap">
+          <div class="metric-col">
+            <div class="metric-hdr">สายที่โทร</div>
+            <div class="tap-row">
+              <div class="tap-minus" onclick="bump(${e.id},'calls',-1)">−</div>
+              <div class="tap-main" onclick="bump(${e.id},'calls',1)">
+                <div class="tap-num" id="calls_${e.id}" style="color:${b.dark}">${e.calls}</div>
+                <div class="tap-label" style="color:${b.color}">+ แตะเพิ่ม</div>
+              </div>
+            </div>
+          </div>
+          <div class="metric-col">
+            <div class="metric-hdr">จำนวนนัด</div>
+            <div class="tap-row">
+              <div class="tap-minus" onclick="bump(${e.id},'apps',-1)">−</div>
+              <div class="tap-main" onclick="bump(${e.id},'apps',1)">
+                <div class="tap-num" id="apps_${e.id}" style="color:${b.dark}">${e.apps||0}</div>
+                <div class="tap-label" style="color:${b.color}">+ แตะเพิ่ม</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  window.changeDate = function(val) {
+    if(!val) return;
+    currentDate = val;
+    loadData();
+  }
+  
+  window.pickBranch = function(id) { sel = id; renderBar(); renderEmps(); }
+  window.addEmp = function(name='', calls=0, apps=0) {
+    if(!data[sel]) data[sel]=[];
+    data[sel].push({id: ++seq, name, calls, apps});
+    persist(); renderEmps(); renderBar();
+  }
+  window.delEmp = function(id) {
+    data[sel] = data[sel].filter(e=>e.id!==id);
+    persist(); renderEmps(); renderBar();
+  }
+  window.bump = function(id, type, delta) {
+    const b = BR.find(x=>x.id===sel);
+    const emp = data[sel].find(e=>e.id===id);
+    if(!emp) return;
+    emp[type] = Math.max(0, (emp[type]||0) + delta);
+    persist();
+    const el = document.getElementById(`${type}_${id}`);
+    if(el){
+      el.textContent = emp[type];
+      el.style.color = b.dark;
+      el.style.transform = 'scale(1.15)';
+      setTimeout(() => el.style.transform = 'scale(1)', 120);
+    }
+    renderBar();
+  }
+  window.updateEmpName = function(id, value) {
+    const emp = data[sel].find(x => x.id === id);
+    if(emp) { emp.name = value; persist(); }
+  }
+
+  // --- Dashboard ---
+  window.openDashboard = async function() {
+    // ถามรหัสผ่านครั้งแรกครั้งเดียว
+    if (!isBossAuthenticated) {
+      const pwd = prompt("กรุณาใส่รหัสผ่านเพื่อเข้าสู่โหมดผู้บริหาร:");
+      if (pwd !== "boss") {
+        alert("รหัสผ่านไม่ถูกต้อง");
+        return;
+      }
+      isBossAuthenticated = true;
+    }
+
+    document.getElementById('tracker-view').style.display = 'none';
+    document.getElementById('dashboard-view').style.display = 'flex';
+    
+    // ตั้งค่าเริ่มต้นเป็นวันที่ที่เลือกอยู่
+    dashStartDate = currentDate;
+    dashEndDate = currentDate;
+    document.getElementById('dash-start').value = dashStartDate;
+    document.getElementById('dash-end').value = dashEndDate;
+    
+    renderDashTabs(); 
+    await loadDashboardData();
+  }
+
+  window.closeDashboard = function() {
+    document.getElementById('tracker-view').style.display = 'flex';
+    document.getElementById('dashboard-view').style.display = 'none';
+  }
+
+  window.changeDashDate = function() {
+    const start = document.getElementById('dash-start').value;
+    const end = document.getElementById('dash-end').value;
+    if (start && end) {
+      dashStartDate = start;
+      dashEndDate = end;
+      loadDashboardData();
+    }
+  }
+
+  window.setDashSel = function(id) { 
+    dashSel = id; 
+    renderDashTabs(); 
+    renderDashContent(); 
+  }
+  
+  function renderDashTabs() {
+    const tabs = [{id:'ALL', label:'ดูรวมทั้งหมด'}, ...BR];
+    document.getElementById('dash-tabs').innerHTML = tabs.map(t => `
+      <div class="d-tab ${dashSel === t.id ? 'active' : ''}" onclick="setDashSel('${t.id}')">${t.label}</div>
+    `).join('');
+  }
+
+  // โหลดและรวมข้อมูลสำหรับ Dashboard
+  async function loadDashboardData() {
+    document.getElementById('dash-list').innerHTML = `<div class="loading">กำลังรวมข้อมูล...</div>`;
+    document.getElementById('dash-stats').innerHTML = '';
+    try {
+      const q = query(
+        collection(db, "daily_calls"),
+        where("date", ">=", dashStartDate),
+        where("date", "<=", dashEndDate)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const aggregated = {}; // เก็บรวมยอดรายคน (key: branch_name)
+
+      querySnapshot.forEach((docSnap) => {
+        const dayData = docSnap.data();
+        BR.forEach(b => {
+          if (dayData[b.id]) {
+            dayData[b.id].forEach(emp => {
+              // ไม่เอาคนที่ไม่มีข้อมูลเลย
+              if (!emp.name && (!emp.calls || emp.calls === 0) && (!emp.apps || emp.apps === 0)) return;
+              
+              const safeName = emp.name || '(ไม่ระบุชื่อ)';
+              const key = `${b.id}_${safeName}`;
+              
+              if (!aggregated[key]) {
+                aggregated[key] = { name: safeName, branch: b, calls: 0, apps: 0 };
+              }
+              aggregated[key].calls += (emp.calls || 0);
+              aggregated[key].apps += (emp.apps || 0);
+            });
+          }
+        });
+      });
+
+      dashAggregatedData = Object.values(aggregated);
+      renderDashContent();
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('dash-list').innerHTML = `<div class="loading" style="color:red;">โหลดข้อมูลล้มเหลว</div>`;
+    }
+  }
+
+  function renderDashContent() {
+    // กรองตามสาขาที่เลือก
+    let emps = [];
+    if (dashSel === 'ALL') {
+      emps = [...dashAggregatedData];
+    } else {
+      emps = dashAggregatedData.filter(e => e.branch.id === dashSel);
+    }
+    
+    // เรียงจากมากไปน้อย
+    emps.sort((a,b) => b.calls - a.calls);
+
+    const tc = emps.reduce((s, e) => s + e.calls, 0);
+    const ta = emps.reduce((s, e) => s + (e.apps||0), 0);
+    
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-val" style="color:var(--frc)">${tc}</div><div class="stat-lbl">รวมสาย</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--frb)">${ta}</div><div class="stat-lbl">รวมนัด</div></div>
+      <div class="stat-card"><div class="stat-val">${emps.length}</div><div class="stat-lbl">พนักงาน</div></div>
+    `;
+
+    if(emps.length === 0) {
+      document.getElementById('dash-list').innerHTML = `<div class="sum-empty">ไม่มีข้อมูลในช่วงเวลานี้</div>`;
+      return;
+    }
+
+    let listHTML = emps.map((e, idx) => {
+      const bb = dashSel === 'ALL' ? `<span class="d-emp-branch" style="background:${e.branch.light};color:${e.branch.dark}">${e.branch.id}</span>` : '';
+      let rc = 'var(--tx3)';
+      if(idx === 0) rc = '#FFB800'; else if(idx === 1) rc = '#9E9E9E'; else if(idx === 2) rc = '#CD7F32';
+      return `
+        <div class="d-emp-item">
+          <div class="d-emp-info">
+            <span class="d-emp-rank" style="color:${rc}">${idx + 1}</span>
+            ${bb}
+            <span class="d-emp-name">${escapeHTML(e.name)}</span>
+          </div>
+          <div style="text-align:right;">
+            <span class="d-emp-calls" style="color:${e.branch.dark}">${e.calls}</span>
+            <span style="font-size:13px;color:var(--tx3);margin-left:4px;">/ ${e.apps}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // แถบสรุปรวมทั้งหมดด้านล่างสุด
+    listHTML += `
+      <div class="d-total-row">
+        <span class="d-total-label">รวมทั้งหมด</span>
+        <span class="d-total-val"><span style="color:#2ECC71;">${tc}</span> สาย / <span style="color:#3498DB;">${ta}</span> นัด</span>
+      </div>
+    `;
+
+    document.getElementById('dash-list').innerHTML = listHTML;
+  }
+
+  window.exportCSV = function() {
+    const rows=[];
+    let emps = dashSel === 'ALL' ? [...dashAggregatedData] : dashAggregatedData.filter(e => e.branch.id === dashSel);
+    emps.sort((a,b) => b.calls - a.calls);
+
+    emps.forEach(e=>{
+      const safeName = (e.name||'').toString().replace(/"/g,'""');
+      rows.push([`${dashStartDate} ถึง ${dashEndDate}`, e.branch.id, e.branch.label, safeName, e.calls, e.apps].map(v=>`"${v}"`).join(','));
+    });
+
+    const csv='\uFEFF'+'ช่วงวันที่,สาขา,ชื่อสาขา,พนักงาน,จำนวนโทร,จำนวนนัด\n'+rows.join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download=`dashboard_summary_${dashStartDate}_to_${dashEndDate}.csv`; 
+    a.click();
+  }
+
+  // --- Start App ---
+  document.getElementById('date-picker').value = currentDate;
+  loadData();
+
+</script>
+</body>
+</html>
