@@ -85,6 +85,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .notif-list{max-height:280px;overflow-y:auto;}
 .notif-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);}
 .notif-item:last-child{border-bottom:none;}
+.notif-item-tap{cursor:pointer;transition:background .12s;}
+.notif-item-tap:active{background:var(--bg);}
 .notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .notif-dot.miss{background:#D85A30;}
 .notif-dot.ok{background:#1D9E75;}
@@ -721,10 +723,13 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         if(!isMissing) return; // show only missing
         const dayName = thDays[dateObj.getDay()];
         const display = `${dateStr.split('-')[2]}/${dateStr.split('-')[1]}/${dateStr.split('-')[0].slice(2)}`;
-        html += `<div class="notif-item">
+        html += `<div class="notif-item notif-item-tap" onclick="goToDate('${dateStr}')">
           <div class="notif-dot ${isMissing?'miss':'ok'}"></div>
           <div class="notif-date">${dayName} ${display}</div>
-          <div class="notif-status">${isMissing?'ยังไม่กรอก':'ครบแล้ว'}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="notif-status">${isMissing?'ยังไม่กรอก':'ครบแล้ว'}</div>
+            <div style="font-size:14px;color:var(--tx3);">→</div>
+          </div>
         </div>`;
       });
     }
@@ -754,6 +759,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     notifOpen = false;
     document.getElementById('notif-panel').classList.add('closed');
     document.getElementById('notif-overlay').style.display = 'none';
+  }
+
+  window.goToDate = function(dateStr) {
+    closeNotifPanel();
+    currentDate = dateStr;
+    document.getElementById('date-picker').value = dateStr;
+    loadData();
+    toastMsg(`ไปยัง ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}/${dateStr.split('-')[0].slice(2)}`);
   }
 
   // Close confirm overlay when tapping outside
@@ -857,6 +870,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     else{emps.forEach((e,i)=>{text+=`${i+1}. ${e.name||'(ไม่ระบุชื่อ)'} - โทร: ${e.calls} / นัด: ${e.apps}\n`;});}
     window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`,'_blank');
   }
+
   window.exportCSV=function(){
     const rows=[];
     let emps=dashSel==='ALL'?[...dashAggregatedData]:dashAggregatedData.filter(e=>e.branch.id===dashSel);
