@@ -857,7 +857,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     else{emps.forEach((e,i)=>{text+=`${i+1}. ${e.name||'(ไม่ระบุชื่อ)'} - โทร: ${e.calls} / นัด: ${e.apps}\n`;});}
     window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`,'_blank');
   }
-
   window.exportCSV=function(){
     const rows=[];
     let emps=dashSel==='ALL'?[...dashAggregatedData]:dashAggregatedData.filter(e=>e.branch.id===dashSel);
