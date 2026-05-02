@@ -69,6 +69,30 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .sum-btn{font-family:var(--font);font-size:12px;font-weight:500;padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:var(--bg);color:var(--tx2);cursor:pointer;transition:all .15s;}
 .sum-btn:active{background:var(--bd);}
 
+/* Bell Button */
+.bell-wrap{position:relative;display:flex;align-items:center;}
+.bell-btn{background:none;border:none;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-size:20px;position:relative;transition:background .15s;}
+.bell-btn:active{background:var(--bg);}
+.bell-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;background:#D85A30;color:#fff;border-radius:8px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--sur);pointer-events:none;}
+.bell-badge.hidden{display:none;}
+
+/* Notification Panel */
+.notif-panel{position:absolute;top:56px;right:8px;width:300px;background:var(--sur);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:100;overflow:hidden;transform-origin:top right;transition:transform .2s, opacity .2s;}
+.notif-panel.closed{transform:scale(0.9);opacity:0;pointer-events:none;}
+.notif-hdr{padding:14px 16px 10px;border-bottom:1px solid var(--bd);}
+.notif-hdr-title{font-size:14px;font-weight:600;}
+.notif-hdr-sub{font-size:12px;color:var(--tx3);margin-top:2px;}
+.notif-list{max-height:280px;overflow-y:auto;}
+.notif-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.04);}
+.notif-item:last-child{border-bottom:none;}
+.notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.notif-dot.miss{background:#D85A30;}
+.notif-dot.ok{background:#1D9E75;}
+.notif-date{font-size:13px;font-weight:500;flex:1;}
+.notif-status{font-size:12px;color:var(--tx3);}
+.notif-empty{padding:24px 16px;text-align:center;color:var(--tx3);font-size:13px;}
+.notif-overlay{position:fixed;inset:0;z-index:90;background:transparent;}
+
 /* Branch tabs */
 .branch-bar{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sur);}
 .b-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;gap:3px;}
@@ -87,7 +111,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .b-tab.frb.active .b-tab-id{color:var(--frb-d);}
 .b-tab.frs.active .b-tab-id{color:var(--frs-d);}
 .b-tab.bsk.active .b-tab-id{color:var(--bsk-d);}
-/* locked tab style */
 .b-tab.locked{opacity:0.35;cursor:not-allowed;}
 .b-tab.locked:active{opacity:0.35;}
 
@@ -95,11 +118,17 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .scroll{flex:1;overflow-y:auto;padding:16px;}
 
 /* Employee cards */
-.emp-card{background:var(--bg);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+.emp-card{background:var(--bg);border-radius:14px;margin-bottom:12px;overflow:hidden;transition:opacity .2s;}
+.emp-card.deleting{opacity:0;transform:scale(0.95);transition:opacity .2s, transform .2s;}
 .emp-top{display:flex;align-items:center;padding:12px 14px;gap:10px;}
 .emp-name-wrap{flex:1;}
 .emp-name{font-size:15px;font-weight:500;width:100%;border:none;background:transparent;font-family:var(--font);color:var(--tx);outline:none;padding:0;}
 .emp-name::placeholder{color:var(--tx3);}
+
+/* Delete button */
+.btn-del-emp{background:none;border:none;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx3);font-size:16px;transition:all .15s;flex-shrink:0;}
+.btn-del-emp:active{background:var(--frs-l);color:var(--frs-d);}
+
 .metrics-wrap{display:flex;border-top:1px solid rgba(0,0,0,0.06);}
 .metric-col{flex:1;display:flex;flex-direction:column;}
 .metric-col:first-child{border-right:1px solid rgba(0,0,0,0.06);}
@@ -113,6 +142,18 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .tap-label{font-size:11px;font-weight:500;margin-top:2px;}
 .add-emp{width:100%;padding:14px;border:2px dashed var(--bd);border-radius:14px;background:transparent;font-family:var(--font);font-size:15px;color:var(--tx2);cursor:pointer;margin-bottom:12px;transition:all .15s;}
 .add-emp:active{background:rgba(0,0,0,0.04);}
+
+/* Confirm Delete Dialog */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0 0 24px;}
+.confirm-overlay.hidden{display:none;}
+.confirm-sheet{background:var(--sur);border-radius:20px 20px 0 0;padding:24px 20px 16px;width:100%;max-width:480px;}
+.confirm-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+.confirm-sub{font-size:13px;color:var(--tx2);margin-bottom:20px;}
+.confirm-btns{display:flex;flex-direction:column;gap:10px;}
+.btn-confirm-del{padding:15px;border-radius:12px;border:none;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;background:#FAECE7;color:#712B13;}
+.btn-confirm-del:active{background:#f5d6cc;}
+.btn-confirm-cancel{padding:15px;border-radius:12px;border:none;font-family:var(--font);font-size:15px;color:var(--tx2);cursor:pointer;background:var(--bg);}
+.btn-confirm-cancel:active{background:var(--bd);}
 
 /* Dashboard */
 .dash-date-row{display:flex;align-items:center;gap:8px;padding:0 16px 12px;background:var(--sur);border-bottom:1px solid var(--bd);}
@@ -144,7 +185,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .btn-line:active{background:#009900;}
 
 /* Toast & Loading */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .2s;z-index:200;pointer-events:none;white-space:nowrap;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .2s;z-index:300;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .loading{display:flex;justify-content:center;padding:40px 0;color:var(--tx3);font-size:14px;}
 </style>
@@ -180,7 +221,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
       <div class="login-pwd-wrap">
         <label class="login-pwd-label" for="login-pwd">รหัสผ่าน</label>
-        <input type="password" id="login-pwd" class="login-pwd-field" placeholder="ใส่รหัสผ่านสาขา..." 
+        <input type="password" id="login-pwd" class="login-pwd-field" placeholder="ใส่รหัสผ่านสาขา..."
           autocomplete="off" onkeydown="if(event.key==='Enter') doLogin()">
       </div>
 
@@ -201,6 +242,22 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <input type="date" id="date-picker" class="date-picker" onchange="changeDate(this.value)">
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <!-- Bell Notification Button -->
+        <div class="bell-wrap">
+          <button class="bell-btn" id="bell-btn" onclick="toggleNotifPanel()" title="แจ้งเตือนวันที่ขาดข้อมูล">
+            🔔
+            <span class="bell-badge hidden" id="bell-badge">0</span>
+          </button>
+          <div class="notif-panel closed" id="notif-panel">
+            <div class="notif-hdr">
+              <div class="notif-hdr-title">วันที่ยังไม่กรอกข้อมูล</div>
+              <div class="notif-hdr-sub" id="notif-sub">ตรวจสอบ 14 วันย้อนหลัง</div>
+            </div>
+            <div class="notif-list" id="notif-list">
+              <div class="loading" style="padding:20px 0;">กำลังตรวจสอบ...</div>
+            </div>
+          </div>
+        </div>
         <button class="sum-btn" onclick="doLogout()">ออกจากระบบ</button>
       </div>
     </div>
@@ -240,6 +297,21 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   </div>
 </div>
 
+<!-- Notification overlay (close panel when clicking outside) -->
+<div class="notif-overlay" id="notif-overlay" style="display:none;" onclick="closeNotifPanel()"></div>
+
+<!-- Confirm Delete Sheet -->
+<div class="confirm-overlay hidden" id="confirm-overlay">
+  <div class="confirm-sheet">
+    <div class="confirm-title">ลบพนักงาน?</div>
+    <div class="confirm-sub" id="confirm-emp-name">ต้องการลบพนักงานคนนี้ออกจากระบบ</div>
+    <div class="confirm-btns">
+      <button class="btn-confirm-del" onclick="confirmDelete()">🗑 ลบออก</button>
+      <button class="btn-confirm-cancel" onclick="cancelDelete()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -267,26 +339,26 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     {id:'BSK',label:'BSK',cls:'bsk',color:'#BA7517',dark:'#633806',light:'#FAEEDA'},
   ];
 
-  // รหัสผ่านแต่ละสาขา
-  const BRANCH_PASSWORDS = {
-    FRC: 'frc1234',
-    FRB: 'frb1234',
-    FRS: 'frs1234',
-    BSK: 'bsk1234',
-  };
+  const BRANCH_PASSWORDS = {FRC:'frc1234',FRB:'frb1234',FRS:'frs1234',BSK:'bsk1234'};
   const BOSS_PASSWORD = 'boss';
 
   let data = {FRC:[],FRB:[],FRS:[],BSK:[]};
   let sel = 'FRC';
-  let loggedInBranch = null; // สาขาที่ล็อกอินอยู่
+  let loggedInBranch = null;
   let loginSelectedBranch = null;
   let dashSel = 'ALL';
   let dashStartDate = '';
   let dashEndDate = '';
   let dashAggregatedData = [];
   let isBossAuthenticated = false;
-  let dashFromLogin = false; // เปิด dashboard จากหน้า login
+  let dashFromLogin = false;
   let unsubscribe = null;
+
+  // For delete confirmation
+  let pendingDeleteId = null;
+
+  // Notification panel state
+  let notifOpen = false;
 
   const getTodayStr = () => {
     const d = new Date();
@@ -333,7 +405,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       document.getElementById('login-pwd').focus();
       return;
     }
-    // ล็อกอินสำเร็จ
     loggedInBranch = loginSelectedBranch;
     sel = loggedInBranch;
     document.getElementById('login-err').textContent = '';
@@ -341,7 +412,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('tracker-view').style.display = 'flex';
 
-    // ตั้ง badge
     const b = BR.find(x=>x.id===loggedInBranch);
     const badge = document.getElementById('hdr-branch-badge');
     badge.textContent = b.id;
@@ -350,6 +420,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
     document.getElementById('date-picker').value = currentDate;
     loadData();
+    checkMissingDates();
   }
 
   window.doLogout = function() {
@@ -357,6 +428,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     loggedInBranch = null;
     loginSelectedBranch = null;
     data = {FRC:[],FRB:[],FRS:[],BSK:[]};
+    pendingDeleteId = null;
+    closeNotifPanel();
     document.getElementById('tracker-view').style.display = 'none';
     document.getElementById('login-view').style.display = 'flex';
     document.getElementById('login-submit-btn').className = 'login-submit none';
@@ -440,7 +513,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   function totalApps(bid){return(data[bid]||[]).reduce((s,e)=>s+(e.apps||0),0);}
 
   function renderBar(){
-    // แสดงทุกสาขาแต่ล็อกการสลับเฉพาะสาขาตัวเอง
     document.getElementById('bbar').innerHTML=BR.map(b=>{
       const isOwn = b.id === loggedInBranch;
       const lockedCls = isOwn ? '' : 'locked';
@@ -459,19 +531,19 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   function renderEmps(){
     const b=BR.find(x=>x.id===sel);
     const emps=data[sel]||[];
-    // แสดงได้เฉพาะสาขาตัวเอง
     if(sel !== loggedInBranch){
       document.getElementById('emp-list').innerHTML=`<div class="loading">คุณไม่มีสิทธิ์ดูข้อมูลสาขานี้</div>`;
       return;
     }
     document.getElementById('emp-list').innerHTML=emps.map(e=>`
-      <div class="emp-card">
+      <div class="emp-card" id="card_${e.id}">
         <div class="emp-top">
           <div class="emp-name-wrap">
             <input class="emp-name" placeholder="ชื่อพนักงาน..." value="${escapeHTML(e.name)}"
               autocomplete="off" onfocus="this.select()"
               onchange="updateEmpName('${e.id}',this.value)">
           </div>
+          <button class="btn-del-emp" onclick="askDeleteEmp('${e.id}','${escapeHTML(e.name)}')" title="ลบพนักงาน">🗑</button>
         </div>
         <div class="metrics-wrap">
           <div class="metric-col">
@@ -534,6 +606,160 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       return prev;
     });
   }
+
+  // ---- DELETE EMPLOYEE ----
+  window.askDeleteEmp = function(id, name) {
+    pendingDeleteId = id;
+    document.getElementById('confirm-emp-name').textContent =
+      `ต้องการลบ "${name || 'พนักงานคนนี้'}" ออกจากระบบใช่ไหม? ข้อมูลจะหายถาวร`;
+    document.getElementById('confirm-overlay').classList.remove('hidden');
+  }
+
+  window.cancelDelete = function() {
+    pendingDeleteId = null;
+    document.getElementById('confirm-overlay').classList.add('hidden');
+  }
+
+  window.confirmDelete = async function() {
+    if(!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    pendingDeleteId = null;
+    document.getElementById('confirm-overlay').classList.add('hidden');
+
+    // Animate card out
+    const card = document.getElementById(`card_${id}`);
+    if(card){
+      card.classList.add('deleting');
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    await persistTransaction(prev=>{
+      prev[sel] = (prev[sel]||[]).filter(e => String(e.id) !== String(id));
+      return prev;
+    });
+    toastMsg("ลบพนักงานเรียบร้อย");
+  }
+
+  // ---- BELL NOTIFICATION ----
+  async function checkMissingDates() {
+    if(!loggedInBranch) return;
+    const today = new Date();
+    const dates = [];
+
+    // Generate last 14 working days (skip Sundays)
+    for(let i = 1; i <= 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dayOfWeek = d.getDay();
+      if(dayOfWeek === 0) continue; // skip Sunday
+      const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      dates.push({dateStr: str, dateObj: d});
+    }
+
+    // Query Firestore for these dates
+    const startStr = dates[dates.length-1].dateStr;
+    const endStr = dates[0].dateStr;
+
+    try {
+      const q = query(collection(db,"daily_calls"),
+        where("date",">=",startStr),
+        where("date","<=",endStr)
+      );
+      const qs = await getDocs(q);
+      const found = {};
+      qs.forEach(ds => {
+        const dd = ds.data();
+        const branchData = dd[loggedInBranch] || [];
+        const hasCalls = branchData.some(e => (e.calls||0) > 0);
+        found[ds.id] = hasCalls;
+      });
+
+      const missingDates = [];
+      const results = [];
+      dates.forEach(({dateStr, dateObj}) => {
+        const hasCalls = found[dateStr] === true;
+        const exists = dateStr in found;
+        const missing = !exists || !hasCalls;
+        results.push({dateStr, dateObj, missing});
+        if(missing) missingDates.push(dateStr);
+      });
+
+      // Update badge
+      const badge = document.getElementById('bell-badge');
+      if(missingDates.length > 0){
+        badge.textContent = missingDates.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      // Store for panel rendering
+      window._notifResults = results;
+      renderNotifPanel(results);
+    } catch(e) {
+      console.error("checkMissingDates error:", e);
+    }
+  }
+
+  function renderNotifPanel(results) {
+    if(!results || results.length === 0) {
+      document.getElementById('notif-list').innerHTML = `<div class="notif-empty">ไม่มีข้อมูล</div>`;
+      return;
+    }
+    const thDays = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+    const missing = results.filter(r => r.missing);
+    document.getElementById('notif-sub').textContent =
+      missing.length > 0
+        ? `ขาดข้อมูล ${missing.length} วัน (ใน 14 วันทำการล่าสุด)`
+        : 'ครบทุกวัน ✓ (14 วันทำการล่าสุด)';
+
+    let html = '';
+    if(missing.length === 0){
+      html = `<div class="notif-empty">✅ กรอกข้อมูลครบทุกวันแล้ว!</div>`;
+    } else {
+      results.forEach(({dateStr, dateObj, missing: isMissing}) => {
+        if(!isMissing) return; // show only missing
+        const dayName = thDays[dateObj.getDay()];
+        const display = `${dateStr.split('-')[2]}/${dateStr.split('-')[1]}/${dateStr.split('-')[0].slice(2)}`;
+        html += `<div class="notif-item">
+          <div class="notif-dot ${isMissing?'miss':'ok'}"></div>
+          <div class="notif-date">${dayName} ${display}</div>
+          <div class="notif-status">${isMissing?'ยังไม่กรอก':'ครบแล้ว'}</div>
+        </div>`;
+      });
+    }
+    document.getElementById('notif-list').innerHTML = html;
+  }
+
+  window.toggleNotifPanel = function() {
+    if(notifOpen) {
+      closeNotifPanel();
+    } else {
+      openNotifPanel();
+    }
+  }
+
+  function openNotifPanel() {
+    notifOpen = true;
+    document.getElementById('notif-panel').classList.remove('closed');
+    document.getElementById('notif-overlay').style.display = 'block';
+    // Refresh data when opening
+    if(window._notifResults) {
+      renderNotifPanel(window._notifResults);
+    }
+    checkMissingDates();
+  }
+
+  window.closeNotifPanel = function() {
+    notifOpen = false;
+    document.getElementById('notif-panel').classList.add('closed');
+    document.getElementById('notif-overlay').style.display = 'none';
+  }
+
+  // Close confirm overlay when tapping outside
+  document.getElementById('confirm-overlay').addEventListener('click', function(e){
+    if(e.target === this) cancelDelete();
+  });
 
   // ---- DASHBOARD ----
   window.closeDashboard=function(){
