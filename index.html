@@ -482,23 +482,19 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         renderBar(); renderEmps();
         document.getElementById('add-btn').style.display='block';
       } else {
-        if(currentDate===getTodayStr()){
-          const q=query(collection(db,"daily_calls"),orderBy("date","desc"),limit(1));
-          const qs=await getDocs(q);
-          if(!qs.empty&&qs.docs[0].id!==currentDate){
-            const ld=qs.docs[0].data();
-            const nd={FRC:[],FRB:[],FRS:[],BSK:[]};
-            BR.forEach(b=>{
-              if(ld[b.id]) ld[b.id].forEach(e=>{
-                nd[b.id].push({id:Date.now()+Math.random(),name:e.name,calls:0,apps:0});
-              });
+        // ไม่มีข้อมูลวันนี้ → หาวันที่ใกล้ที่สุดก่อนหน้า แล้ว copy ชื่อพนักงานมา (calls=0, apps=0)
+        const q=query(collection(db,"daily_calls"),orderBy("date","desc"),limit(20));
+        const qs=await getDocs(q);
+        const prevDoc = qs.docs.find(d => d.id < currentDate);
+        if(prevDoc){
+          const ld=prevDoc.data();
+          const nd={FRC:[],FRB:[],FRS:[],BSK:[]};
+          BR.forEach(b=>{
+            if(ld[b.id]) ld[b.id].forEach(e=>{
+              if(e.name) nd[b.id].push({id:Date.now()+Math.random(),name:e.name,calls:0,apps:0});
             });
-            await setDoc(docRef,{...nd,date:currentDate},{merge:true});
-          } else {
-            data={FRC:[],FRB:[],FRS:[],BSK:[]};
-            renderBar(); renderEmps();
-            document.getElementById('add-btn').style.display='block';
-          }
+          });
+          await setDoc(docRef,{...nd,date:currentDate},{merge:true});
         } else {
           data={FRC:[],FRB:[],FRS:[],BSK:[]};
           renderBar(); renderEmps();
