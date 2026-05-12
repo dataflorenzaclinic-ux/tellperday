@@ -470,35 +470,44 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     }
   }
 
-  function loadData() {
+function loadData() {
     if(unsubscribe) unsubscribe();
     document.getElementById('emp-list').innerHTML=`<div class="loading">กำลังเชื่อมต่อข้อมูล...</div>`;
     document.getElementById('add-btn').style.display='none';
     const docRef = doc(db,"daily_calls",currentDate);
-    unsubscribe = onSnapshot(docRef,async(docSnap)=>{
+    
+    unsubscribe = onSnapshot(docRef, async(docSnap)=>{
       if(docSnap.exists()){
         const dbData=docSnap.data();
         data={FRC:dbData.FRC||[],FRB:dbData.FRB||[],FRS:dbData.FRS||[],BSK:dbData.BSK||[]};
         renderBar(); renderEmps();
         document.getElementById('add-btn').style.display='block';
       } else {
-        // ไม่มีข้อมูลวันนี้ → หาวันที่ใกล้ที่สุดก่อนหน้า แล้ว copy ชื่อพนักงานมา (calls=0, apps=0)
-        const q=query(collection(db,"daily_calls"),orderBy("date","desc"),limit(20));
-        const qs=await getDocs(q);
-        const prevDoc = qs.docs.find(d => d.id < currentDate);
-        if(prevDoc){
-          const ld=prevDoc.data();
-          const nd={FRC:[],FRB:[],FRS:[],BSK:[]};
-          BR.forEach(b=>{
-            if(ld[b.id]) ld[b.id].forEach(e=>{
-              if(e.name) nd[b.id].push({id:Date.now()+Math.random(),name:e.name,calls:0,apps:0});
+        // ไม่มีข้อมูลวันนี้ → หาวันที่ใกล้ที่สุดก่อนหน้า โดยเรียงจาก Document ID (__name__)
+        try {
+          // แก้ไขตรงนี้: เปลี่ยน "date" เป็น "__name__"
+          const q = query(collection(db,"daily_calls"), orderBy("__name__","desc"), limit(20));
+          const qs = await getDocs(q);
+          const prevDoc = qs.docs.find(d => d.id < currentDate);
+          
+          if(prevDoc){
+            const ld=prevDoc.data();
+            const nd={FRC:[],FRB:[],FRS:[],BSK:[]};
+            BR.forEach(b=>{
+              if(ld[b.id]) ld[b.id].forEach(e=>{
+                // คัดลอกชื่อมา แต่รีเซ็ตยอด calls และ apps เป็น 0
+                if(e.name) nd[b.id].push({id:Date.now()+Math.random(), name:e.name, calls:0, apps:0});
+              });
             });
-          });
-          await setDoc(docRef,{...nd,date:currentDate},{merge:true});
-        } else {
-          data={FRC:[],FRB:[],FRS:[],BSK:[]};
-          renderBar(); renderEmps();
-          document.getElementById('add-btn').style.display='block';
+            await setDoc(docRef,{...nd,date:currentDate},{merge:true});
+          } else {
+            data={FRC:[],FRB:[],FRS:[],BSK:[]};
+            renderBar(); renderEmps();
+            document.getElementById('add-btn').style.display='block';
+          }
+        } catch(err) {
+          console.error("Error fetching previous data:", err);
+          document.getElementById('emp-list').innerHTML=`<div class="loading" style="color:red;">ไม่สามารถดึงข้อมูลเก่าได้</div>`;
         }
       }
     },(err)=>{
