@@ -470,48 +470,69 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     }
   }
 
-function loadData() {
+async function loadData() {
     if(unsubscribe) unsubscribe();
     document.getElementById('emp-list').innerHTML=`<div class="loading">กำลังเชื่อมต่อข้อมูล...</div>`;
     document.getElementById('add-btn').style.display='none';
-    const docRef = doc(db,"daily_calls",currentDate);
     
-    unsubscribe = onSnapshot(docRef, async(docSnap)=>{
+    const docRef = doc(db, "daily_calls", currentDate);
+
+    unsubscribe = onSnapshot(docRef, async (docSnap) => {
       if(docSnap.exists()){
-        const dbData=docSnap.data();
-        data={FRC:dbData.FRC||[],FRB:dbData.FRB||[],FRS:dbData.FRS||[],BSK:dbData.BSK||[]};
+        console.log("🟢 [สถานะ] พบข้อมูลของวันนี้:", currentDate);
+        const dbData = docSnap.data();
+        data = { FRC: dbData.FRC||[], FRB: dbData.FRB||[], FRS: dbData.FRS||[], BSK: dbData.BSK||[] };
         renderBar(); renderEmps();
         document.getElementById('add-btn').style.display='block';
       } else {
-        // ไม่มีข้อมูลวันนี้ → หาวันที่ใกล้ที่สุดก่อนหน้า โดยเรียงจาก Document ID (__name__)
+        console.log(`🟡 [สถานะ] ไม่พบข้อมูลของวันนี้ (${currentDate}) กำลังค้นหาข้อมูลเก่า...`);
         try {
-          // แก้ไขตรงนี้: เปลี่ยน "date" เป็น "__name__"
-          const q = query(collection(db,"daily_calls"), orderBy("__name__","desc"), limit(20));
+          const q = query(collection(db, "daily_calls"), orderBy("__name__", "desc"), limit(10));
           const qs = await getDocs(q);
-          const prevDoc = qs.docs.find(d => d.id < currentDate);
-          
-          if(prevDoc){
-            const ld=prevDoc.data();
-            const nd={FRC:[],FRB:[],FRS:[],BSK:[]};
-            BR.forEach(b=>{
-              if(ld[b.id]) ld[b.id].forEach(e=>{
-                // คัดลอกชื่อมา แต่รีเซ็ตยอด calls และ apps เป็น 0
-                if(e.name) nd[b.id].push({id:Date.now()+Math.random(), name:e.name, calls:0, apps:0});
-              });
-            });
-            await setDoc(docRef,{...nd,date:currentDate},{merge:true});
+
+          console.log("📊 [ข้อมูล] จำนวนเอกสารที่ดึงมาได้ทั้งหมด:", qs.size);
+
+          if (qs.empty) {
+            console.log("🔴 [แจ้งเตือน] ไม่มีข้อมูลเก่าในระบบเลย (Collection ว่างเปล่า)");
           } else {
-            data={FRC:[],FRB:[],FRS:[],BSK:[]};
+            // พิมพ์รายชื่อเอกสารที่ดึงมาได้ทั้งหมดเพื่อเช็ค
+            qs.forEach(doc => {
+              console.log("📄 [ข้อมูล] เอกสารที่พบ:", doc.id);
+            });
+          }
+
+          const prevDoc = qs.docs.find(d => d.id < currentDate);
+
+          if(prevDoc){
+            console.log("✅ [สำเร็จ] เลือกดึงข้อมูลพนักงานจากวันที่:", prevDoc.id);
+            const ld = prevDoc.data();
+            const nd = { FRC: [], FRB: [], FRS: [], BSK: [], date: currentDate };
+
+            BR.forEach(b => {
+              if(ld[b.id]) {
+                ld[b.id].forEach(e => {
+                  if(e.name) {
+                    nd[b.id].push({ id: Date.now() + Math.random(), name: e.name, calls: 0, apps: 0 });
+                  }
+                });
+              }
+            });
+
+            await setDoc(docRef, { ...nd, date: currentDate }, { merge: true });
+            console.log("💾 [สำเร็จ] บันทึกข้อมูลตั้งต้นสำหรับวันนี้เรียบร้อย");
+          } else {
+            console.log(`🟠 [แจ้งเตือน] พบเอกสาร แต่ไม่มีวันไหนที่เก่ากว่า ${currentDate}`);
+            data = { FRC: [], FRB: [], FRS: [], BSK: [] };
             renderBar(); renderEmps();
             document.getElementById('add-btn').style.display='block';
           }
         } catch(err) {
-          console.error("Error fetching previous data:", err);
+          console.error("❌ [Error] เกิดข้อผิดพลาดในการดึงข้อมูล:", err);
           document.getElementById('emp-list').innerHTML=`<div class="loading" style="color:red;">ไม่สามารถดึงข้อมูลเก่าได้</div>`;
         }
       }
-    },(err)=>{
-      console.error(err);
+    }, (err) => {
+      console.error("❌ [Error] เกิดข้อผิดพลาดใน onSnapshot:", err);
       document.getElementById('emp-list').innerHTML=`<div class="loading" style="color:red;">การเชื่อมต่อขัดข้อง</div>`;
     });
   }
