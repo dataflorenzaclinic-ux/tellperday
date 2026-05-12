@@ -487,25 +487,21 @@ async function loadData() {
       } else {
         console.log(`🟡 [สถานะ] ไม่พบข้อมูลของวันนี้ (${currentDate}) กำลังค้นหาข้อมูลเก่า...`);
         try {
-          const q = query(collection(db, "daily_calls"), orderBy("__name__", "desc"), limit(10));
-          const qs = await getDocs(q);
+          // 🚀 ท่าไม้ตาย: ดึงข้อมูลทั้งหมดโดยไม่ใช้ orderBy เพื่อหลีกเลี่ยงการติด Index Error
+          const qs = await getDocs(collection(db, "daily_calls"));
+          
+          let allDocs = [];
+          qs.forEach(d => allDocs.push({ id: d.id, data: d.data() }));
 
-          console.log("📊 [ข้อมูล] จำนวนเอกสารที่ดึงมาได้ทั้งหมด:", qs.size);
-
-          if (qs.empty) {
-            console.log("🔴 [แจ้งเตือน] ไม่มีข้อมูลเก่าในระบบเลย (Collection ว่างเปล่า)");
-          } else {
-            // พิมพ์รายชื่อเอกสารที่ดึงมาได้ทั้งหมดเพื่อเช็ค
-            qs.forEach(doc => {
-              console.log("📄 [ข้อมูล] เอกสารที่พบ:", doc.id);
-            });
-          }
-
-          const prevDoc = qs.docs.find(d => d.id < currentDate);
+          // ใช้ JavaScript เรียงลำดับวันที่จาก "ใหม่ไปเก่า" (เช่น 2026-05-12 -> 2026-05-11)
+          allDocs.sort((a, b) => b.id.localeCompare(a.id));
+          
+          // หาเอกสารแรกสุดที่วันที่น้อยกว่า (เก่ากว่า) วันปัจจุบัน
+          const prevDoc = allDocs.find(d => d.id < currentDate);
 
           if(prevDoc){
             console.log("✅ [สำเร็จ] เลือกดึงข้อมูลพนักงานจากวันที่:", prevDoc.id);
-            const ld = prevDoc.data();
+            const ld = prevDoc.data; // ดึงข้อมูลของวันนั้นมา
             const nd = { FRC: [], FRB: [], FRS: [], BSK: [], date: currentDate };
 
             BR.forEach(b => {
@@ -521,13 +517,13 @@ async function loadData() {
             await setDoc(docRef, { ...nd, date: currentDate }, { merge: true });
             console.log("💾 [สำเร็จ] บันทึกข้อมูลตั้งต้นสำหรับวันนี้เรียบร้อย");
           } else {
-            console.log(`🟠 [แจ้งเตือน] พบเอกสาร แต่ไม่มีวันไหนที่เก่ากว่า ${currentDate}`);
+            console.log(`🟠 [แจ้งเตือน] ไม่มีข้อมูลเก่าเลย เริ่มหน้าว่าง`);
             data = { FRC: [], FRB: [], FRS: [], BSK: [] };
             renderBar(); renderEmps();
             document.getElementById('add-btn').style.display='block';
           }
         } catch(err) {
-          console.error("❌ [Error] เกิดข้อผิดพลาดในการดึงข้อมูล:", err);
+          console.error("❌ [Error] เกิดข้อผิดพลาดในการดึงข้อมูลเก่า:", err);
           document.getElementById('emp-list').innerHTML=`<div class="loading" style="color:red;">ไม่สามารถดึงข้อมูลเก่าได้</div>`;
         }
       }
